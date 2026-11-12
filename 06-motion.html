@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KleisUp · logo en movimiento</title>
+<style>
+:root{--ink:#0b0b0d;--cream:#efebe3;--blue:#3a4bd1;--glow:#6f7dff}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:14px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:#0b0b0d;color:var(--cream);display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}
+.top{display:flex;gap:16px;align-items:stretch;flex-wrap:wrap;padding:12px 16px 8px}
+.top h1{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;opacity:.55;align-self:center;white-space:nowrap}
+.tabs{display:flex;gap:6px;flex:1;flex-wrap:wrap;min-width:0}
+.tab{flex:1 1 150px;text-align:left;font:inherit;color:var(--cream);background:#ffffff0d;border:1px solid #ffffff14;border-radius:12px;padding:8px 12px;cursor:pointer;display:grid;gap:2px;min-width:0}
+.tab b{font-weight:650;font-size:14px;display:flex;gap:8px;align-items:baseline}
+.tab b i{font-style:normal;font-size:11px;opacity:.5;font-weight:500;border:1px solid #ffffff30;border-radius:5px;padding:0 5px}
+.tab span{font-size:11.5px;opacity:.6;line-height:1.3}
+.tab[aria-selected=true]{background:var(--cream);color:#111;border-color:var(--cream)}
+.tab[aria-selected=true] span{opacity:.7}
+.tab:focus-visible,.bar button:focus-visible,.bar input:focus-visible{outline:2px solid #8fb4ff;outline-offset:2px}
+.wrap{min-height:0;display:grid;place-items:center;padding:0 16px}
+.frame{position:relative;overflow:hidden;border-radius:10px;background:#0b0b0d;box-shadow:0 0 0 1px #ffffff14,0 20px 60px #0008}
+.frame svg,.frame canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.frame canvas{object-fit:cover;pointer-events:none}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 16px;background:#141416;border-top:1px solid #ffffff14}
+.bar button{font:inherit;background:#ffffff12;color:var(--cream);border:0;border-radius:999px;padding:8px 14px;cursor:pointer}
+.bar button[aria-pressed=true],.bar button.main{background:var(--cream);color:#111}
+.bar input[type=range]{flex:1;min-width:160px;accent-color:var(--cream)}
+.bar output{font-variant-numeric:tabular-nums;opacity:.7;min-width:11ch;text-align:right}
+.sep{width:1px;height:22px;background:#ffffff1f}
+.lbl{opacity:.55;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+body.bare{grid-template-rows:1fr}body.bare .top,body.bare .bar{display:none}body.bare .wrap{padding:0}body.bare .frame{border-radius:0;box-shadow:none}
+@media (prefers-reduced-motion:reduce){.frame svg,.frame canvas{transition:opacity .3s}}
+</style></head><body>
+<header class="top"><h1>KleisUp · Motion</h1><div class="tabs" id="tabs" role="tablist" aria-label="Variantes de animación"></div></header>
+<main class="wrap" id="wrap"><div class="frame" id="frame">
+<svg id="stage" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Animación del logo KleisUp" xmlns="http://www.w3.org/2000/svg">
+ <defs id="defs">
+  <radialGradient id="glowB"><stop offset="0" stop-color="#8f9bff" stop-opacity=".95"/><stop offset=".3" stop-color="#4a5be6" stop-opacity=".45"/><stop offset="1" stop-color="#3a4bd1" stop-opacity="0"/></radialGradient>
+  <radialGradient id="glowW"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".3" stop-color="#c5ccff" stop-opacity=".45"/><stop offset="1" stop-color="#9aa5ff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="portalG" cx=".5" cy=".38" r=".7"><stop offset="0" stop-color="#2a33b8"/><stop offset=".45" stop-color="#10145a"/><stop offset="1" stop-color="#04050f"/></radialGradient>
+  <radialGradient id="flashG"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset=".25" stop-color="#b9c1ff" stop-opacity=".8"/><stop offset="1" stop-color="#6f7dff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="hiG"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".35" stop-color="#9aa5ff" stop-opacity=".55"/><stop offset="1" stop-color="#3a4bd1" stop-opacity="0"/></radialGradient>
+ </defs>
+ <rect id="bg" width="1920" height="1080" fill="#0b0b0d"/>
+ <g id="world"></g>
+</svg>
+<canvas id="cv" width="1920" height="1080" aria-hidden="true"></canvas>
+</div></main>
+<div class="bar" role="toolbar" aria-label="Controles de la animación">
+ <button class="main" id="bIn" type="button" aria-label="Reproducir entrada">▶ Entrada</button>
+ <button id="bOut" type="button" aria-label="Reproducir salida">▶ Salida</button>
+ <button id="bLoop" type="button" aria-pressed="true" aria-label="Reproducir en bucle: entrada, pausa y salida">Loop</button>
+ <span class="sep"></span>
+ <input id="scrub" type="range" min="0" max="1" step="0.0005" value="0" aria-label="Línea de tiempo">
+ <output id="tt" aria-live="off">0.00 / 0.00s</output>
+ <span class="sep"></span>
+ <span class="lbl" id="lbg">Fondo</span>
+ <span role="group" aria-labelledby="lbg" style="display:flex;gap:6px">
+ <button data-bg="ink" aria-pressed="true" type="button">Negro</button><button data-bg="cream" aria-pressed="false" type="button">Crema</button><button data-bg="blue" aria-pressed="false" type="button">Azul</button></span>
+ <span class="sep"></span>
+ <button id="bSlow" type="button" aria-pressed="false" aria-label="Cámara lenta, velocidad 0.4">Lento ×0.4</button>
+</div>
+<script>
+"use strict";
+const L={"letters":[{"d":"M28.1 -75.79 28.1 -29.39 28.14 -29.17 28.22 -29.03 28.33 -28.92 28.46 -28.84 28.69 -28.79 28.84 -28.81 28.99 -28.87 29.17 -29.01 51.73 -56.85 52.07 -57.14 52.35 -57.26 52.68 -57.3 73.05 -57.3 73.36 -57.26 73.66 -57.14 73.83 -57.02 74.04 -56.79 74.23 -56.39 74.26 -56.03 74.15 -55.6 73.97 -55.32 56.39 -35.13 56.27 -34.94 56.24 -34.71 56.33 -34.43 76.09 -1.83 76.18 -1.66 76.25 -1.4 76.27 -1.2 76.24 -0.92 76.17 -0.74 76.04 -0.5 75.91 -0.35 75.69 -0.18 75.4 -0.05 75.06 0 52.31 0 52 -0.04 51.71 -0.15 51.46 -0.34 51.25 -0.61 41.72 -17.27 41.51 -17.48 41.22 -17.57 40.92 -17.5 40.75 -17.36 25.96 -0.42 25.76 -0.23 25.6 -0.13 25.33 -0.03 25.05 0 6.41 0 6.11 -0.04 5.82 -0.15 5.57 -0.34 5.37 -0.58 5.25 -0.87 5.2 -1.21 5.2 -75.79 5.25 -76.13 5.44 -76.51 5.69 -76.76 6.07 -76.95 6.39 -77 26.89 -77 27.08 -76.99 27.34 -76.91 27.52 -76.83 27.73 -76.66 27.86 -76.51 28 -76.28 28.06 -76.09Z","x":8.0,"cx":49.2,"cy":46.5},{"d":"M5.2 -1.21 5.2 -75.79 5.25 -76.13 5.44 -76.51 5.69 -76.76 6.07 -76.95 6.39 -77 26.89 -77 27.23 -76.95 27.61 -76.76 27.86 -76.51 28.05 -76.13 28.1 -75.79 28.1 -1.21 28.05 -0.87 27.86 -0.49 27.61 -0.24 27.23 -0.05 26.91 -0 6.41 0 6.22 -0.01 5.96 -0.09 5.78 -0.17 5.57 -0.34 5.44 -0.49 5.3 -0.72 5.24 -0.91Z","x":82.3,"cx":98.95,"cy":46.5},{"d":"M26.58 -22.64 27.06 -21.72 27.49 -21.01 28.13 -20.18 28.84 -19.4 29.62 -18.67 30.47 -17.99 31.39 -17.36 32.39 -16.79 33.45 -16.27 34.59 -15.8 35.8 -15.38 37.07 -15.03 38.42 -14.73 39.83 -14.49 41.31 -14.31 42.86 -14.18 44.48 -14.11 46.14 -14.1 47.76 -14.15 49.37 -14.24 50.97 -14.39 52.57 -14.6 54.16 -14.86 55.74 -15.17 57.31 -15.53 58.86 -15.94 61.41 -16.75 63.37 -17.49 64.81 -18.11 66.22 -18.78 68.14 -19.79 68.48 -19.88 68.75 -19.87 68.94 -19.83 69.32 -19.64 69.54 -19.42 69.7 -19.16 69.79 -18.82 69.8 -8.03 69.75 -7.67 69.61 -7.37 69.39 -7.12 67.7 -5.98 66.09 -5.01 64.96 -4.39 62.62 -3.23 60.21 -2.2 57.68 -1.27 55.04 -0.46 52.35 0.23 49.68 0.78 46.98 1.21 44.27 1.5 41.55 1.66 38.63 1.69 36.04 1.59 33.52 1.38 31.07 1.04 28.7 0.59 26.4 0.01 24.17 -0.68 22.01 -1.49 19.92 -2.42 17.94 -3.45 16.07 -4.57 14.3 -5.8 12.64 -7.12 11.1 -8.54 9.66 -10.05 8.33 -11.66 7.1 -13.39 6.04 -15.15 5.39 -16.41 4.57 -18.31 3.9 -20.29 3.53 -21.65 3.24 -23.01 2.91 -25.15 2.73 -27.37 2.71 -29.63 2.83 -31.85 3.1 -33.98 3.35 -35.33 3.67 -36.67 4.28 -38.64 5.03 -40.53 5.94 -42.38 6.98 -44.14 8.16 -45.82 9.45 -47.41 10.36 -48.42 11.3 -49.36 12.84 -50.73 14.5 -52.02 16.25 -53.19 17.47 -53.92 18.72 -54.6 20.72 -55.55 22.8 -56.4 24.19 -56.89 25.62 -57.33 27.83 -57.9 30.12 -58.35 31.64 -58.58 33.21 -58.76 35.62 -58.94 38.11 -59 40.69 -58.93 43.17 -58.73 44.74 -58.52 46.3 -58.25 48.55 -57.73 50.73 -57.06 52.8 -56.27 54.11 -55.66 55.37 -55.01 57.22 -53.89 58.38 -53.09 59.47 -52.25 61.08 -50.86 62.07 -49.89 63 -48.88 64.34 -47.21 65.17 -46.06 65.93 -44.88 66.66 -43.62 67.34 -42.31 68.28 -40.25 68.83 -38.83 69.31 -37.41 69.96 -35.13 70.31 -33.61 70.61 -32.02 70.86 -30.4 71.05 -28.73 71.19 -27.01 71.29 -24.74 71.24 -24.39 71.06 -24 70.93 -23.85 70.68 -23.66 70.38 -23.54 70.08 -23.5 27.12 -23.5 26.89 -23.45 26.75 -23.37 26.64 -23.25 26.56 -23.11 26.53 -22.96 26.53 -22.8ZM26.53 -34.8 49.86 -34.8 50.09 -34.84 50.28 -34.97 50.41 -35.16 50.46 -35.38 50.43 -35.6 50.28 -36.01 49.75 -37.25 49.3 -38.1 48.7 -39.04 48.05 -39.88 47.34 -40.65 46.57 -41.34 45.75 -41.96 44.86 -42.49 44.14 -42.86 43.15 -43.25 42.12 -43.56 41.28 -43.74 40.13 -43.91 38.93 -43.99 37.94 -44 36.61 -43.92 35.64 -43.8 34.42 -43.55 33.53 -43.29 32.44 -42.88 31.64 -42.48 30.67 -41.89 29.77 -41.22 28.92 -40.45 27.99 -39.41 27.32 -38.46 26.61 -37.22 26.2 -36.24 25.93 -35.45 25.95 -35.22 26.06 -35.02 26.24 -34.88Z","x":113.7,"cx":150.7,"cy":56.35},{"d":"M24.77 -19.4 25.06 -19.37 25.38 -19.24 25.7 -18.98 25.81 -18.82 26.21 -18.06 26.6 -17.45 27.06 -16.87 27.59 -16.32 28.05 -15.92 28.69 -15.44 29.23 -15.09 29.98 -14.68 30.6 -14.38 31.48 -14.02 32.41 -13.71 33.41 -13.43 34.48 -13.2 35.62 -13.01 37.82 -12.79 39.17 -12.72 40.6 -12.7 43.14 -12.77 44.29 -12.86 45.36 -12.99 46.35 -13.15 47.26 -13.35 48.09 -13.58 48.85 -13.85 49.51 -14.15 50.09 -14.49 50.58 -14.86 50.98 -15.26 51.29 -15.69 51.51 -16.14 51.62 -16.49 51.68 -16.81 51.69 -17.49 51.56 -18.08 51.31 -18.59 50.94 -19.05 50.44 -19.46 49.81 -19.8 49.04 -20.09 47.88 -20.41 46.75 -20.63 45.44 -20.84 43.97 -21.01 41.89 -21.2 30.48 -22.03 28.81 -22.18 26.44 -22.44 24.92 -22.64 22.78 -22.97 20.76 -23.36 19.47 -23.65 17.68 -24.11 15.51 -24.8 13.54 -25.57 12.17 -26.21 11.35 -26.65 10.56 -27.11 9.82 -27.6 9.13 -28.11 8.48 -28.63 7.89 -29.18 7.06 -30.06 6.59 -30.67 5.98 -31.57 5.43 -32.54 5.09 -33.25 4.69 -34.29 4.37 -35.35 4.2 -36.13 4.02 -37.26 3.92 -38.46 3.9 -39.32 3.93 -40.4 4.08 -41.93 4.25 -42.95 4.49 -43.92 4.78 -44.87 5.13 -45.79 5.53 -46.67 6 -47.53 6.52 -48.36 7.11 -49.15 7.75 -49.92 8.45 -50.65 9.19 -51.36 9.98 -52.02 10.82 -52.67 11.7 -53.28 12.63 -53.85 13.61 -54.4 14.63 -54.92 15.7 -55.4 16.81 -55.85 17.99 -56.28 19.79 -56.85 21.71 -57.35 23.71 -57.79 25.78 -58.16 27.94 -58.46 30.19 -58.7 32.51 -58.87 34.91 -58.97 37.41 -59 39.85 -58.96 42.21 -58.84 44.51 -58.65 46.74 -58.38 48.91 -58.02 51.01 -57.6 52.38 -57.26 54.35 -56.71 55.65 -56.28 57.47 -55.61 59.24 -54.86 60.88 -54.06 62.44 -53.19 63.9 -52.26 65.27 -51.27 66.54 -50.2 67.72 -49.08 68.46 -48.28 69.44 -47.07 70.27 -45.85 70.79 -44.96 71.44 -43.63 71.95 -42.29 72.36 -40.84 72.47 -40.31 72.49 -39.98 72.36 -39.56 72.15 -39.26 71.79 -39.01 71.48 -38.92 50.23 -38.91 50.03 -38.95 49.77 -39.06 49.61 -39.17 49.41 -39.37 49.31 -39.54 48.9 -40.4 48.54 -40.97 48.02 -41.62 47.41 -42.24 46.84 -42.71 46.21 -43.15 45.53 -43.55 44.78 -43.92 43.76 -44.33 42.87 -44.62 41.91 -44.87 40.88 -45.07 39.76 -45.22 38.57 -45.33 37.29 -45.39 35.89 -45.4 33.96 -45.33 32.24 -45.15 30.74 -44.87 29.46 -44.48 29 -44.29 28.39 -43.99 27.87 -43.66 27.43 -43.31 27.14 -43.03 26.82 -42.63 26.59 -42.22 26.45 -41.87 26.32 -41.24 26.32 -40.51 26.47 -39.88 26.7 -39.39 27.08 -38.91 27.6 -38.5 28.14 -38.21 28.98 -37.9 29.63 -37.74 30.6 -37.54 31.73 -37.38 33 -37.25 48.3 -36.19 51.52 -35.9 53.05 -35.73 55.19 -35.43 57.21 -35.07 58.5 -34.81 60.84 -34.23 62.46 -33.72 64.38 -32.99 66.12 -32.18 66.92 -31.74 67.68 -31.28 68.39 -30.8 69.04 -30.31 69.66 -29.79 70.23 -29.25 71.02 -28.37 71.46 -27.78 72.06 -26.86 72.57 -25.89 73 -24.9 73.36 -23.84 73.56 -23.07 73.78 -21.93 73.93 -20.77 74 -19.54 73.99 -18.51 73.93 -17.39 73.74 -15.81 73.53 -14.77 73.27 -13.76 72.94 -12.78 72.56 -11.83 72.12 -10.92 71.62 -10.03 71.06 -9.18 70.44 -8.35 69.76 -7.56 69.03 -6.8 68.25 -6.07 67.42 -5.38 66.54 -4.72 65.61 -4.09 64.64 -3.49 63.61 -2.93 62.54 -2.4 61.41 -1.9 60.24 -1.44 59.03 -1 57.11 -0.41 55.08 0.11 52.27 0.68 50.05 1.02 47.74 1.3 45.33 1.5 42.01 1.66 39.39 1.7 36.72 1.66 34.12 1.54 31.6 1.33 29.15 1.05 26.82 0.69 24.53 0.24 22.34 -0.29 20.95 -0.69 19.58 -1.12 17.61 -1.82 15.73 -2.61 13.99 -3.46 12.91 -4.04 11.86 -4.67 10.38 -5.68 9.01 -6.75 7.73 -7.91 6.6 -9.12 5.93 -9.93 5.31 -10.78 4.46 -12.13 3.99 -13.03 3.6 -13.92 3.24 -14.87 2.95 -15.83 2.72 -16.82 2.55 -17.83 2.51 -18.19 2.55 -18.5 2.68 -18.82 2.97 -19.14 3.27 -19.32 3.53 -19.39Z","x":227.36,"cx":265.56,"cy":56.35},{"d":"M28.8 -73.79 28.8 -33.61 28.87 -32.11 28.99 -31.02 29.22 -29.66 29.47 -28.66 29.86 -27.44 30.36 -26.29 30.8 -25.45 31.46 -24.44 32.21 -23.5 33.05 -22.65 33.77 -22.05 34.77 -21.34 35.88 -20.7 36.78 -20.28 38.05 -19.83 39.08 -19.54 40.51 -19.26 41.66 -19.12 43.25 -19.01 44.54 -19 45.82 -19.05 47.41 -19.2 48.56 -19.38 49.65 -19.61 50.97 -20.01 51.92 -20.38 52.81 -20.81 53.89 -21.45 54.86 -22.16 55.55 -22.78 56.36 -23.65 56.92 -24.38 57.56 -25.39 57.99 -26.24 58.47 -27.41 58.85 -28.64 59.09 -29.65 59.32 -31.01 59.43 -32.11 59.5 -33.6 59.5 -73.79 59.55 -74.13 59.74 -74.51 59.95 -74.74 60.12 -74.85 60.41 -74.96 60.71 -75 81.59 -75 81.93 -74.95 82.22 -74.83 82.46 -74.63 82.65 -74.38 82.76 -74.09 82.8 -73.79 82.79 -31.86 82.67 -29.35 82.5 -27.7 82.13 -25.35 81.79 -23.78 81.39 -22.28 80.92 -20.81 80.11 -18.7 79.47 -17.32 78.76 -15.95 77.99 -14.64 76.75 -12.78 75.84 -11.58 74.86 -10.41 73.84 -9.31 72.24 -7.77 71.08 -6.79 69.86 -5.84 68.59 -4.96 66.63 -3.74 65.21 -2.96 63.04 -1.92 61.51 -1.28 59.95 -0.71 57.57 0.02 55.9 0.44 54.18 0.8 51.57 1.22 49.75 1.43 46.99 1.63 45.08 1.69 43.13 1.69 40.33 1.58 37.64 1.34 35.88 1.1 34.13 0.79 31.65 0.24 30 -0.21 28.41 -0.72 26.13 -1.59 24.64 -2.24 23.17 -2.97 21.12 -4.12 19.8 -4.96 18.52 -5.86 16.75 -7.26 15.61 -8.26 14.52 -9.33 13.03 -10.98 12.06 -12.18 10.77 -14 9.95 -15.31 9.21 -16.64 8.24 -18.67 7.66 -20.08 7.15 -21.54 6.71 -23.05 6.34 -24.57 5.91 -26.89 5.71 -28.51 5.58 -30.15 5.5 -32.71 5.5 -73.79 5.51 -73.98 5.59 -74.24 5.74 -74.51 5.99 -74.76 6.37 -74.95 6.69 -75 27.59 -75 27.78 -74.99 28.04 -74.91 28.22 -74.83 28.43 -74.66 28.56 -74.51 28.7 -74.28 28.76 -74.09Z","x":300.96,"cx":345.11,"cy":48.35},{"d":"M6.39 16.5 6.07 16.45 5.69 16.26 5.44 16.01 5.25 15.63 5.2 15.29 5.2 -56.09 5.24 -56.39 5.35 -56.68 5.54 -56.93 5.78 -57.13 6.07 -57.25 6.41 -57.3 26.89 -57.3 27.08 -57.29 27.34 -57.21 27.61 -57.06 27.84 -56.85 28 -56.58 28.09 -56.28 28.1 -49.07 28.18 -48.85 28.33 -48.67 28.46 -48.6 28.69 -48.55 28.91 -48.59 29.11 -48.71 30 -49.74 31.01 -50.8 32.07 -51.82 32.82 -52.48 33.95 -53.38 34.73 -53.96 36.39 -55.05 37.35 -55.61 38.44 -56.17 39.53 -56.68 40.66 -57.14 42.44 -57.75 43.64 -58.08 44.86 -58.36 46.1 -58.59 47.37 -58.77 48.66 -58.9 49.95 -58.97 51.29 -59 52.68 -58.97 54.05 -58.89 55.39 -58.76 56.66 -58.59 57.93 -58.35 59.18 -58.07 60.39 -57.73 61.58 -57.34 62.74 -56.9 63.86 -56.4 64.97 -55.85 66.04 -55.26 67.1 -54.59 68.56 -53.56 69.51 -52.81 70.43 -51.99 71.29 -51.15 72.5 -49.83 73.28 -48.86 74.01 -47.87 75.01 -46.33 75.65 -45.21 76.24 -44.06 76.79 -42.89 77.5 -41.09 77.93 -39.81 78.3 -38.52 78.75 -36.55 79 -35.18 79.2 -33.78 79.35 -32.32 79.48 -30.12 79.5 -28.61 79.44 -26.39 79.34 -24.93 79.11 -22.85 78.89 -21.48 78.61 -20.12 78.12 -18.2 77.71 -16.92 77.04 -15.11 76.52 -13.92 75.94 -12.74 75.02 -11.1 74.01 -9.53 73.26 -8.51 72.1 -7.1 70.86 -5.81 69.53 -4.59 68.56 -3.81 67.08 -2.75 65.51 -1.78 63.89 -0.95 62.73 -0.43 60.99 0.22 59.2 0.75 57.33 1.16 56.01 1.38 54.05 1.59 52.67 1.67 50.61 1.69 48.63 1.6 46.69 1.38 45.4 1.16 43.56 0.75 41.81 0.22 40.62 -0.21 38.97 -0.93 37.85 -1.5 36.37 -2.36 34.75 -3.43 33.19 -4.61 31.72 -5.9 30.33 -7.3 29.11 -8.69 28.98 -8.78 28.76 -8.85 28.53 -8.83 28.39 -8.77 28.18 -8.55 28.1 -8.25 28.1 15.31 28.06 15.59 28 15.78 27.86 16.01 27.73 16.16 27.52 16.33 27.34 16.41 27.08 16.49ZM27.36 -28.41 27.86 -27.06 28.39 -25.87 29.16 -24.48 29.86 -23.4 30.64 -22.38 31.71 -21.19 32.85 -20.1 34.06 -19.11 35.1 -18.39 36.44 -17.59 37.85 -16.9 39.02 -16.45 40.47 -16.03 41.66 -15.79 42.88 -15.65 44.4 -15.6 45.57 -15.67 46.96 -15.89 48.04 -16.18 49.29 -16.66 50.27 -17.17 51.4 -17.9 52.42 -18.74 53.17 -19.5 53.99 -20.52 54.58 -21.43 55.21 -22.63 55.62 -23.67 56.01 -25.02 56.23 -26.17 56.38 -27.66 56.4 -28.92 56.33 -30.15 56.13 -31.62 55.87 -32.75 55.43 -34.08 54.97 -35.11 54.3 -36.3 53.52 -37.38 52.8 -38.18 51.83 -39.07 50.96 -39.71 49.8 -40.39 48.8 -40.85 47.51 -41.27 46.41 -41.51 45 -41.67 43.8 -41.7 42.56 -41.63 41.07 -41.41 39.88 -41.12 38.44 -40.64 37.28 -40.14 35.89 -39.4 34.82 -38.72 33.57 -37.79 32.6 -36.96 31.48 -35.83 30.44 -34.61 29.67 -33.55 28.84 -32.19 28.12 -30.75 27.74 -29.84 27.36 -28.79 27.33 -28.64Z","x":386.46,"cx":428.81,"cy":63.75}],"yb":85.0,"w":476.86,"h":109.5,"key":{"d":"M0 -27A27 27 0 0 1 17.316 20.716A5.94 5.94 0 0 0 15.27 26.27L22.113 66.492A5.573 5.573 0 0 1 16.619 73L-16.619 73A5.573 5.573 0 0 1 -22.113 66.492L-15.27 26.27A5.94 5.94 0 0 0 -17.316 20.716A27 27 0 0 1 0 -27Z","x":207.68,"k":0.6696,"R":27.0,"cy":36.12}};
+const NS="http://www.w3.org/2000/svg",$=id=>document.getElementById(id);
+const el=(tag,at,par)=>{const e=document.createElementNS(NS,tag);if(at)for(const k in at)e.setAttribute(k,at[k]);if(par)par.appendChild(e);return e};
+// ---------- layout: lockup units -> 1920x1080 stage (same convention as 05)
+const SC=1180/L.w,OX=(1920-L.w*SC)/2,OY=(1080-L.h*SC)/2+8;
+$("world").setAttribute("transform",`translate(${OX} ${OY}) scale(${SC})`);
+const CX=(960-OX)/SC,CY=(540-OY)/SC;
+const SW0=-OX/SC,SH0=-OY/SC,SW1=(1920-OX)/SC,SH1=(1080-OY)/SC;
+const KX=L.key.x,KY=L.key.cy,KK=L.key.k,KR=L.key.R*KK,YB=L.yb,WC=L.w/2,HC=L.h/2;
+const KEYD=L.key.d;
+// ---------- math / easing (all exact at 0 and 1)
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),seg=(t,a,b)=>cl((t-a)/(b-a));
+const lerp=(a,b,p)=>a*(1-p)+b*p;
+const outExpo=p=>p>=1?1:1-Math.pow(2,-10*p),inExpo=p=>p<=0?0:Math.pow(2,10*p-10);
+const inOutExpo=p=>p<=0?0:p>=1?1:p<.5?Math.pow(2,20*p-10)/2:(2-Math.pow(2,-20*p+10))/2;
+const outCubic=p=>1-Math.pow(1-p,3),inCubic=p=>p*p*p,inQuad=p=>p*p,outQuad=p=>1-(1-p)*(1-p);
+const outQuint=p=>1-Math.pow(1-p,5),inQuint=p=>p*p*p*p*p;
+const inOutCubic=p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+const inOutQuint=p=>p<.5?16*p**5:1-Math.pow(-2*p+2,5)/2;
+const outBack=(p,s=1.7)=>1+(s+1)*Math.pow(p-1,3)+s*Math.pow(p-1,2);
+const inBack=(p,s=1.7)=>(s+1)*p*p*p-s*p*p;
+const smooth=p=>p*p*(3-2*p),bell=p=>Math.sin(Math.PI*cl(p));
+const fx=v=>Math.round(v*1000)/1000,fs=v=>Math.round(v*1e5)/1e5;
+function mulberry32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+// ---------- colours
+const COLS={ink:{bg:"#0b0b0d",fg:"#efebe3",ac:"#3a4bd1",hi:"#7d8bff"},cream:{bg:"#efebe3",fg:"#0b0b0d",ac:"#3a4bd1",hi:"#3a4bd1"},blue:{bg:"#3a4bd1",fg:"#ffffff",ac:"#0b0b0d",hi:"#ffffff"}};
+const BLUE="#3a4bd1",CREAM="#efebe3",INK="#0b0b0d";
+let BG="ink";const C=()=>COLS[BG];
+const hex=s=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16));
+function mix(a,b,p){if(p<=0)return a;if(p>=1)return b;const A=hex(a),B=hex(b);return"#"+A.map((v,i)=>Math.round(lerp(v,B[i],p)).toString(16).padStart(2,"0")).join("")}
+const glowId=()=>BG==="blue"?"url(#glowW)":"url(#glowB)";
+// ---------- shared helpers
+const key_tf=(x,y,s,rot,piv)=>`translate(${fx(x)} ${fx(y)})${rot?` rotate(${fx(rot)})`:""} scale(${fs(KK*s)})`;
+const hide=e=>{e.style.display="none"},show=e=>{e.style.display=""};
+function setPose(g,P,l,fill){
+ if(!P){hide(g);return}
+ show(g);
+ const sx=P.sx===undefined?1:P.sx,sy=P.sy===undefined?1:P.sy,r=P.r||0,dx=P.dx||0,dy=P.dy||0;
+ if(!dx&&!dy&&sx===1&&sy===1&&!r)g.removeAttribute("transform");
+ else{const ax=P.ax===undefined?l.cx:P.ax,ay=P.b?YB:l.cy;
+  g.setAttribute("transform",`translate(${fx(ax+dx)} ${fx(ay+dy)}) rotate(${fx(r)}) scale(${fs(sx)} ${fs(sy)}) translate(${-ax} ${-ay})`)}
+ const o=P.o===undefined?1:P.o;
+ if(o>=1)g.removeAttribute("opacity");else g.setAttribute("opacity",fs(o));
+ const f=P.fill||fill;if(f)g.setAttribute("fill",f);
+}
+// letter set: ng ghost copies (motion smear) + main
+function mkSet(par,ng){return L.letters.map((l,i)=>{const gs=[],p=typeof par==="function"?par(i):par;
+ for(let k=ng;k>=0;k--){const g=el("g",null,p);el("path",{d:l.d,transform:`translate(${l.x} ${YB})`},g);gs[k]=g}return{l,i,gs}})}
+const moved=(P,Q)=>Math.abs((P.dx||0)-(Q.dx||0))+Math.abs((P.dy||0)-(Q.dy||0))+30*Math.abs((P.sx===undefined?1:P.sx)-(Q.sx===undefined?1:Q.sx))+30*Math.abs((P.sy===undefined?1:P.sy)-(Q.sy===undefined?1:Q.sy))+Math.abs((P.r||0)-(Q.r||0))>.5;
+function putLetter(it,fn,t,fill,trail){
+ const P=fn(it.i,t);setPose(it.gs[0],P,it.l,fill);
+ for(let k=1;k<it.gs.length;k++){const g=it.gs[k];
+  if(!P||!trail){hide(g);continue}
+  const Q=fn(it.i,t-trail.dt*k);if(!Q||!moved(P,Q)){hide(g);continue}
+  Q.o=(Q.o===undefined?1:Q.o)*trail.o/k;setPose(g,Q,it.l,P.fill||fill)}}
+const RANK=[];L.letters.map((l,i)=>[Math.abs(l.cx-KX),i]).sort((a,b)=>a[0]-b[0]).forEach((v,r)=>RANK[v[1]]=r);
+const NL=L.letters.length;
+const BIGRECT={x:SW0-300,y:SH0-300,width:SW1-SW0+600,height:SH1-SH0+600};
+const VS=[];
+
+// =====================================================================================
+// 1 · PORTAL — the keyhole is an aperture into depth; geometry behind the plane is clipped by it
+// =====================================================================================
+const V1={name:"Portal",desc:"El cerrojo es un portal: las letras vuelan desde el fondo atravesándolo.",I:3.9,O:3.3};
+(()=>{
+const SB=70/KR,PY=CY-40,ROT0=[-38,31,-26,40,-34,28];
+const SCR=L.letters.map(l=>Math.min(.45,.8*70/(Math.hypot(l.cx-CX,l.cy-PY)+36)));
+V1.build=root=>{
+ const cp=el("clipPath",{id:"v1c"},$("defs"));V1.cp=el("path",{d:KEYD},cp);
+ V1.glow=el("circle",{r:1},root);
+ V1.depth=el("path",{d:KEYD,fill:"url(#portalG)"},root);
+ V1.fill=el("path",{d:KEYD},root);
+ V1.gT=el("g",{"clip-path":"url(#v1c)",fill:"none","stroke-linejoin":"round"},root);
+ V1.rings=[0,1,2,3,4].map(()=>el("path",{d:KEYD,"vector-effect":"non-scaling-stroke","stroke-width":1.4},V1.gT));
+ V1.gC=el("g",{"clip-path":"url(#v1c)"},root);V1.setC=mkSet(V1.gC,2);
+ V1.rim=[[16,.10],[7,.22],[2.2,.95]].map(([w,o])=>el("path",{d:KEYD,fill:"none","vector-effect":"non-scaling-stroke","stroke-width":w,"stroke-opacity":o,"stroke-linejoin":"round"},root));
+ V1.gF=el("g",null,root);V1.setF=mkSet(V1.gF,2);
+ V1.flash=el("circle",{r:1,fill:"url(#flashG)"},root);
+};
+function lp(i,t,intro,layer,vp,fg){
+ const l=L.letters[i],r=RANK[i];let u;
+ if(intro){const ts=.75+r*.17;u=seg(t,ts,ts+1.5)}else{const ts=.45+(NL-1-r)*.12;u=1-Math.pow(seg(t,ts,ts+1.4),1.3)}
+ if(u<=0)return null;
+ const sc=SCR[i];let s;
+ if(u<.5){const a=u*2;s=.05+(sc-.05)*Math.pow(a,1.3)}else s=sc+(1-sc)*outBack((u-.5)*2,1.5);
+ if((u<.5)!==(layer==="c"))return null;
+ return{dx:(vp.x-l.cx)*(1-s),dy:(vp.y-l.cy)*(1-s),sx:s,sy:s,r:ROT0[i]*Math.max(0,1-s),o:seg(u,0,.1),fill:mix("#b9c1ff",fg,seg(s,sc,.8))};
+}
+V1.render=(mode,t)=>{
+ const c=C(),intro=mode==="intro";let kx,ky,s,fm,rim,tun,gl,fl=0,fr=0,ph;
+ if(intro){const pop=seg(t,0,.95),tr=inOutQuint(seg(t,2.45,3.35));
+  s=lerp(SB*outBack(pop,1.5)*(1+.025*Math.sin(t*2.6)*pop),1,tr);kx=lerp(CX,KX,tr);ky=lerp(PY,KY,tr);
+  fm=inOutCubic(seg(t,2.5,3.3));rim=smooth(pop)*(1-seg(t,2.6,3.35));tun=smooth(pop)*(1-seg(t,2.2,2.9));gl=smooth(pop)*(1-seg(t,2.6,3.4));ph=t*.55}
+ else{const g=inOutQuint(seg(t,0,.85)),cl_=seg(t,2.3,3.05),ant=1-.12*Math.sin(Math.PI*seg(t,0,.22));
+  s=lerp(1,SB,g)*ant*(1-inOutCubic(cl_));kx=lerp(KX,CX,g);ky=lerp(KY,PY,g);
+  fm=1-seg(t,0,.5);rim=seg(t,.1,.7)*(1-seg(cl_,.7,1));tun=rim;gl=seg(t,.1,.8)*(1-seg(cl_,.5,1));ph=-t*.55;
+  const fp=seg(cl_,.55,1);fl=Math.sin(Math.PI*fp);fr=20+120*fp}
+ const vis=s>.004,tf=key_tf(kx,ky,s);
+ [V1.depth,V1.fill,...V1.rim,V1.gT].forEach(e=>e.style.display=vis?"":"none");
+ V1.gC.style.display=vis?"":"none";
+ if(vis){V1.cp.setAttribute("transform",tf);V1.depth.setAttribute("transform",tf);V1.fill.setAttribute("transform",tf);
+  V1.depth.style.display=fm>=1?"none":"";V1.depth.setAttribute("opacity",fs(1-fm));
+  V1.fill.setAttribute("fill",c.fg);V1.fill.style.display=fm<=0?"none":"";V1.fill.setAttribute("opacity",fs(fm));
+  V1.rim.forEach((e,j)=>{e.setAttribute("transform",tf);e.setAttribute("stroke",c.hi);e.style.display=rim>.003?"":"none";
+   e.setAttribute("stroke-opacity",fs([.10,.22,.95][j]*rim))});
+  V1.rings.forEach((e,j)=>{const p=(((ph+j/5)%1)+1)%1,f=Math.pow(p,1.5);
+   e.setAttribute("transform",key_tf(kx,ky,s*f));e.setAttribute("stroke",c.hi);e.setAttribute("stroke-opacity",fs(.55*Math.sin(Math.PI*p)*tun))});
+ }
+ const gR=KR*s*3.4+8;V1.glow.setAttribute("cx",fx(kx));V1.glow.setAttribute("cy",fx(ky+KR*s*.8));V1.glow.setAttribute("r",fx(gR));V1.glow.setAttribute("fill",glowId());
+ V1.glow.setAttribute("opacity",fs(gl*(BG==="cream"?.6:BG==="blue"?.7:.9)));V1.glow.style.display=gl>.003&&vis?"":"none";
+ V1.flash.style.display=fl>.003?"":"none";if(fl>.003){V1.flash.setAttribute("cx",fx(kx));V1.flash.setAttribute("cy",fx(ky));V1.flash.setAttribute("r",fx(fr));V1.flash.setAttribute("opacity",fs(fl))}
+ const vp={x:kx,y:ky};
+ V1.setC.forEach(it=>putLetter(it,(i,tt)=>lp(i,tt,intro,"c",vp,c.fg),t,c.fg,{dt:.028,o:.3}));
+ V1.setF.forEach(it=>putLetter(it,(i,tt)=>lp(i,tt,intro,"f",vp,c.fg),t,c.fg,{dt:.028,o:.3}));
+};
+})();
+
+// =====================================================================================
+// 2 · CERRADURA — mechanical lock: key turns with notches, tumbler pins pop the letters up
+// =====================================================================================
+const V2={name:"Cerradura",desc:"El cerrojo gira con clic mecánico y las letras emergen como pines.",I:3.5,O:3.0};
+(()=>{
+const KS=1.4,RR=76,ORD=[...Array(NL).keys()].sort((a,b)=>RANK[a]-RANK[b]),ORDR=[...ORD].reverse();
+const ST_I=[.62,.92,1.22],ST_O=[1.15,1.40,1.65];
+const turnAt=(t,ST)=>{let a=0,p=0;ST.forEach(s=>{const u=seg(t,s,s+.2);a+=30*outBack(u,2.2);p+=outCubic(u)/3});return[a,p]};
+V2.build=root=>{
+ V2.clips=L.letters.map((l,i)=>{const cp=el("clipPath",{id:"v2c"+i},$("defs"));return el("rect",{x:-1000,y:-1000,width:3000,height:1000+YB},cp)});
+ const kc=el("clipPath",{id:"v2k"},$("defs"));V2.kclip=el("rect",{x:-1000,y:-1000,width:3000,height:1000+YB},kc);
+ V2.ul=[0,1].map(()=>el("line",{"stroke-linecap":"round","stroke-width":1.7},root));
+ V2.spark=[0,1].map(()=>el("circle",{r:2.2},root));
+ V2.ringG=el("g",null,root);
+ V2.ringB=el("circle",{r:RR,fill:"none","stroke-width":.7},V2.ringG);
+ V2.ringP=el("circle",{r:RR,fill:"none","stroke-width":2.4,"stroke-linecap":"butt",pathLength:100,transform:"rotate(-90)"},V2.ringG);
+ V2.ticks=[...Array(24).keys()].map(j=>{const a=j/24*Math.PI*2;return el("line",{x1:fx(Math.sin(a)*(RR+3)),y1:fx(-Math.cos(a)*(RR+3)),x2:fx(Math.sin(a)*(RR+9)),y2:fx(-Math.cos(a)*(RR+9)),"stroke-width":1.4,"stroke-linecap":"round"},V2.ringG)});
+ V2.set=mkSet(i=>el("g",{"clip-path":"url(#v2c"+i+")"},root),2);
+ V2.kg=el("g",null,root);V2.key=el("path",{d:KEYD},V2.kg);
+};
+function lp(i,t,intro){
+ const l=L.letters[i],dy0=2*(YB-l.cy)+16;let u,e,yc,on;
+ if(intro){const k=ORD.indexOf(i),a=1.55+k*.085;u=seg(t,a,a+.9);e=outBack(u,2.0);yc=YB+24*smooth(seg(u,.55,.9))}
+ else{const k=ORDR.indexOf(i),a=.25+k*.09;u=seg(t,a,a+.65);e=inBack(u,1.7);yc=YB+24*(1-smooth(seg(u,.05,.4)))}
+ return{dy:intro?dy0*(1-e):dy0*e,yc,u};
+}
+V2.render=(mode,t)=>{
+ const c=C(),intro=mode==="intro",ac2=BG==="blue"?"#fff":BG==="ink"?"#7d8bff":BLUE;
+ let s,rot,ro,rs,prog,pulse,d,retr,dyk=0,kclip=false;
+ if(intro){const pop=seg(t,0,.5),back=inOutCubic(seg(t,2.1,2.8));const[a,p]=turnAt(t,ST_I);
+  const rc=seg(t,2.2,2.8);
+  s=lerp(KS*outBack(pop,1.8),1,back);rot=(a+5*Math.sin(Math.PI*seg(t,1.48,1.72)))*(1-outBack(seg(t,2.0,2.7),1.3));
+  ro=seg(t,.15,.5)*(1-rc);rs=(1+.1*bell(seg(t,1.48,1.8)))*(1-.25*inCubic(rc));prog=p;pulse=bell(seg(t,1.48,1.8));
+  d=outExpo(seg(t,1.5,2.0));retr=inOutCubic(seg(t,2.45,3.05))}
+ else{const g=outBack(seg(t,1.0,1.4),1.6);const[a,p]=turnAt(t,ST_O);const rc=seg(t,1.95,2.4),dd=inBack(seg(t,2.2,2.8),1.4);
+  s=lerp(1,KS,g);rot=a+5*Math.sin(Math.PI*seg(t,1.88,2.1));dyk=dd*100;kclip=t>2.2;
+  ro=seg(t,1.0,1.3)*(1-rc);rs=(1+.1*bell(seg(t,1.88,2.15)))*(1-.35*inCubic(rc));prog=p;pulse=bell(seg(t,1.88,2.15));
+  d=outExpo(seg(t,0,.45));retr=inOutCubic(seg(t,2.35,2.9))}
+ // keyhole
+ const vis=s>.004;V2.kg.style.display=vis?"":"none";
+ V2.key.setAttribute("fill",c.fg);
+ if(vis){V2.key.setAttribute("transform",key_tf(KX,KY+dyk,s,rot));}
+ if(kclip)V2.kg.setAttribute("clip-path","url(#v2k)");else V2.kg.removeAttribute("clip-path");
+ // ring
+ V2.ringG.style.display=ro>.004?"":"none";
+ if(ro>.004){V2.ringG.setAttribute("transform",`translate(${KX} ${KY}) scale(${fs(rs)})`);V2.ringG.setAttribute("opacity",fs(ro));
+  V2.ringB.setAttribute("stroke",c.fg);V2.ringB.setAttribute("stroke-opacity",.22);
+  V2.ringP.setAttribute("stroke",ac2);V2.ringP.setAttribute("stroke-dasharray",`${fx(prog*100)} 100`);
+  V2.ticks.forEach((e,j)=>{const lit=cl(prog*24-j+.5);e.setAttribute("stroke",lit>.5?ac2:c.fg);e.setAttribute("stroke-opacity",fs(.25+.75*lit))})}
+ // underline
+ const xo0=KX-(KX+50)*d,xo1=KX+(L.w-KX+50)*d,xi0=lerp(KX,-50,retr),xi1=lerp(KX,L.w+50,retr),live=d>0&&retr<1;
+ V2.ul.forEach((e,j)=>{e.style.display=live?"":"none";if(live){e.setAttribute("stroke",c.fg);e.setAttribute("x1",fx(j?xi1:xi0));e.setAttribute("x2",fx(j?xo1:xo0));e.setAttribute("y1",YB+.9);e.setAttribute("y2",YB+.9)}});
+ V2.spark.forEach((e,j)=>{const on=live&&d<.995;e.style.display=on?"":"none";if(on){e.setAttribute("cx",fx(j?xo1:xo0));e.setAttribute("cy",YB+.9);e.setAttribute("fill",ac2)}});
+ // letters
+ V2.set.forEach(it=>{const i=it.i,P=lp(i,t,intro),clipOn=intro?P.u<1:P.u>0;
+  const par=it.gs[0].parentNode;
+  if(clipOn){par.setAttribute("clip-path","url(#v2c"+i+")");V2.clips[i].setAttribute("height",fx(1000+P.yc))}else par.removeAttribute("clip-path");
+  putLetter(it,(ii,tt)=>{const Q=lp(ii,tt,intro);return(intro?Q.u>0:Q.u<1)?{dy:Q.dy}:null},t,c.fg,{dt:.03,o:.28})});
+ if(kclip)V2.kclip.setAttribute("height",fx(1000+YB));
+};
+})();
+
+// =====================================================================================
+// 3 · IRIS DE LUZ — keyhole iris/wipe with inner parallax
+// =====================================================================================
+const V3={name:"Iris de luz",desc:"Un iris con forma de cerrojo se abre sobre un campo azul con parallax.",I:4.4,O:3.2};
+(()=>{
+const SMIN=.3,SMAX=30,LN=Math.log(SMAX/SMIN);
+const ctr_tf=(cx,cy,cs,r)=>cs===1&&!r&&cx===KX&&cy===KY?null:`translate(${fx(cx)} ${fx(cy)}) rotate(${fx(r)}) scale(${fs(cs)}) translate(${-KX} ${-KY})`;
+V3.build=root=>{
+ V3.dark=el("rect",{...BIGRECT,fill:INK},root);
+ V3.glow=el("circle",{r:1},root);
+ const cp=el("clipPath",{id:"v3c"},$("defs"));V3.cp=el("path",{d:KEYD},cp);
+ V3.gI=el("g",{"clip-path":"url(#v3c)"},root);
+ V3.field=el("rect",{...BIGRECT},V3.gI);
+ V3.hi=el("circle",{r:1,fill:"url(#hiG)"},V3.gI);
+ V3.gc=el("g",null,V3.gI);V3.set=mkSet(V3.gc,0);
+ V3.rim=[[14,.18],[2.6,.95]].map(([w,o])=>el("path",{d:KEYD,fill:"none","vector-effect":"non-scaling-stroke","stroke-width":w,"stroke-opacity":o,"stroke-linejoin":"round"},root));
+ V3.key=el("path",{d:KEYD},root);
+ V3.ring=el("circle",{fill:"none","vector-effect":"non-scaling-stroke","stroke-width":2},root);
+ const kc=el("clipPath",{id:"v3k"},$("defs"));el("path",{d:KEYD,transform:key_tf(KX,KY,1)},kc);
+ V3.gg=el("g",{"clip-path":"url(#v3k)"},root);V3.glint=el("rect",{y:KY-70,width:14,height:150,fill:"#fff"},V3.gg);
+};
+V3.render=(mode,t)=>{
+ const c=C(),intro=mode==="intro";let Sm,mx,my,cs,rot,cxx,cyy,fm,gl,rimO,keyO,clipOn=true;
+ let kp=null,ringP=0,gp=0;
+ if(intro){
+  const pop=outBack(seg(t,0,.55),1.6),e=Math.pow(seg(t,.4,2.0),1.8);
+  Sm=SMIN*pop*(1+.35*seg(t,0,.5))*Math.exp(LN*e);mx=CX;my=CY;clipOn=t<2.0;
+  const trv=inOutQuint(seg(t,2.05,3.4));
+  cs=lerp(lerp(2.1,1.3,outCubic(seg(t,.15,2.2))),1,trv);rot=lerp(lerp(-9,-3,outCubic(seg(t,.15,2.2))),0,trv);
+  cxx=lerp(CX,KX,trv);cyy=lerp(CY,KY,trv);fm=inOutCubic(seg(t,2.4,3.4));
+  gl=seg(t,0,.4)*(1-seg(t,1.4,1.95));rimO=1-seg(t,1.5,2.0);
+  keyO=0;const p=seg(t,3.1,3.9);kp=p>0?p:null;ringP=seg(t,3.5,4.0);gp=seg(t,3.9,4.4);
+ }else{
+  const pA=inOutCubic(seg(t,0,.9)),e=inOutCubic(seg(t,.9,2.6)),cl_=seg(t,2.6,3.1);
+  Sm=SMAX*Math.exp(-LN*e)*(1-inOutCubic(cl_));mx=KX;my=KY;clipOn=t>.9;
+  cs=lerp(lerp(1,1.3,pA),1.9,e);rot=lerp(lerp(0,-3,pA),-9,e);cxx=KX;cyy=KY;fm=1-pA;
+  gl=seg(t,1.8,2.4)*(1-seg(cl_,.6,1));rimO=seg(t,.9,1.2)*(1-seg(cl_,.7,1));
+  keyO=1-seg(t,.1,.7);
+ }
+ const sm=Sm>.004;
+ const tf=key_tf(mx,my,Sm);
+ if(clipOn){V3.cp.setAttribute("transform",tf);V3.gI.setAttribute("clip-path","url(#v3c)")}else V3.gI.removeAttribute("clip-path");
+ V3.gI.style.display=clipOn&&!sm?"none":"";
+ V3.dark.style.display=(intro&&!clipOn)||(!intro&&!clipOn)?"none":"";
+ // field + content
+ V3.field.setAttribute("fill",mix(BLUE,c.bg,fm));
+ V3.hi.setAttribute("cx",fx(mx));V3.hi.setAttribute("cy",fx(my));V3.hi.setAttribute("r",fx(Math.max(60,KR*Sm*1.9)));V3.hi.setAttribute("opacity",fs(.6*(1-fm)));
+ const ct=ctr_tf(cxx,cyy,cs,rot);if(ct)V3.gc.setAttribute("transform",ct);else V3.gc.removeAttribute("transform");
+ const wf=mix(CREAM,c.fg,fm);
+ V3.set.forEach(it=>putLetter(it,()=>({}),t,wf,null));
+ // glow + rim
+ V3.glow.style.display=gl>.003&&sm?"":"none";
+ if(gl>.003&&sm){V3.glow.setAttribute("cx",fx(mx));V3.glow.setAttribute("cy",fx(my+KR*Sm*.7));V3.glow.setAttribute("r",fx(KR*Sm*2.6+16));V3.glow.setAttribute("fill","url(#glowB)");V3.glow.setAttribute("opacity",fs(.9*gl))}
+ V3.rim.forEach((e,j)=>{const on=rimO>.003&&sm;e.style.display=on?"":"none";if(on){e.setAttribute("transform",tf);e.setAttribute("stroke","#cfd6ff");e.setAttribute("stroke-opacity",fs([.18,.95][j]*rimO))}});
+ // real keyhole (lands last in the intro; fades out first in the outro)
+ let ko=0,kx=KX,ky=KY,ks=1,kfill=c.fg;
+ if(intro){if(kp!==null){const p=kp;ks=1+2.2*(1-outBack(p,1.3));kx=lerp(CX,KX,outExpo(p));ky=lerp(CY,KY,outExpo(p));ko=seg(p,0,.12);kfill=mix("#cfd6ff",c.fg,seg(p,.2,.9))}}
+ else ko=keyO;
+ V3.key.style.display=ko>.003?"":"none";
+ if(ko>.003){V3.key.setAttribute("fill",kfill);V3.key.setAttribute("transform",key_tf(kx,ky,ks));if(ko>=1)V3.key.removeAttribute("opacity");else V3.key.setAttribute("opacity",fs(ko))}
+ const rg=intro&&ringP>0&&ringP<1;V3.ring.style.display=rg?"":"none";
+ if(rg){V3.ring.setAttribute("cx",KX);V3.ring.setAttribute("cy",KY);V3.ring.setAttribute("r",fx(lerp(8,95,outCubic(ringP))));V3.ring.setAttribute("stroke",c.hi);V3.ring.setAttribute("stroke-opacity",fs(.8*(1-ringP)))}
+ const gg=intro&&gp>0&&gp<1;V3.gg.style.display=gg?"":"none";
+ if(gg){V3.glint.setAttribute("transform",`translate(${fx(lerp(KX-50,KX+40,inOutCubic(gp)))} 0) skewX(-20)`);V3.glint.setAttribute("opacity",fs(.9*bell(gp)))}
+};
+})();
+
+// =====================================================================================
+// 4 · TIPO CINÉTICO — Swiss marquee rows, giant keyhole mask, hard snap into the logo
+// =====================================================================================
+const V4={name:"Tipo cinético",desc:"Filas de texto en marquesina; un cerrojo gigante las recorta y todo colapsa en el logo.",I:3.8,O:2.8};
+(()=>{
+const NR=9,CR=4,PL=L.w+170,RS0=.5,PITCH=L.h*RS0,SG=5.6,PYG=CY-86;
+const SPD=[-70,115,-190,95,150,-130,210,-85,60];
+const kfill=()=>BG==="blue"?INK:BLUE;
+V4.build=root=>{
+ const defs=$("defs"),wm=el("g",{id:"wm"},defs);
+ L.letters.forEach(l=>el("path",{d:l.d,transform:`translate(${l.x} ${YB})`},wm));el("path",{d:KEYD,transform:key_tf(KX,KY,1)},wm);
+ const cp=el("clipPath",{id:"v4c"},defs);V4.cp=el("path",{d:KEYD},cp);
+ const mk=el("mask",{id:"v4m",maskUnits:"userSpaceOnUse",...BIGRECT},defs);el("rect",{...BIGRECT,fill:"#fff"},mk);V4.mp=el("path",{d:KEYD,fill:"#000"},mk);
+ V4.key=el("path",{d:KEYD},root);
+ V4.gIn=el("g",{"clip-path":"url(#v4c)"},root);V4.gOut=el("g",{mask:"url(#v4m)"},root);
+ V4.gS=el("g",null,root);V4.gC=el("g",null,root);
+ V4.rows=[...Array(NR).keys()].map(i=>{const g=el("g",{fill:"none"},i===CR?V4.gC:i%2===0?V4.gIn:V4.gOut);
+  for(let m=-2;m<=2;m++)el("use",{href:"#wm",x:m*PL},g);return g});
+ V4.streak=[...Array(NR).keys()].map(i=>el("rect",{height:1.1,rx:.55},V4.gS));
+ V4.gL=el("g",null,root);V4.set=mkSet(V4.gL,2);
+};
+const rnd=mulberry32(77),SLEN=[...Array(NR)].map(()=>260+rnd()*520),SOFF=[...Array(NR)].map(()=>rnd()*2-1);
+function marq(i,t){const v=SPD[i],t1=1.9,A1=v*(t1+1.5),Af=v>0?PL*Math.ceil((A1+.8*PL)/PL):PL*Math.floor((A1-.8*PL)/PL);
+ if(t<t1){const tau=t+1.5*inQuad(seg(t,1.0,t1));return v*tau}return A1+(Af-A1)*outQuint(seg(t,t1,2.72))}
+const wrap=A=>{let o=((A%PL)+PL)%PL;return o>PL/2?o-PL:o};
+function setRow(i,g,off,y,rs,op,fg){
+ g.setAttribute("transform",`translate(${fx(WC)} ${fx(y)}) scale(${fs(rs)}) translate(${fx(-WC+off)} ${fx(-HC)})`);
+ g.style.display=op>.003?"":"none";if(op>=1)g.removeAttribute("opacity");else g.setAttribute("opacity",fs(op));
+ if(i===CR||i%2===0){g.setAttribute("fill",i===CR?fg:"#f4f1ea");g.removeAttribute("stroke")}
+ else if(i%4===1){g.setAttribute("fill","none");g.setAttribute("stroke",fg);g.setAttribute("stroke-width",1.5);g.setAttribute("stroke-linejoin","round")}
+ else{g.setAttribute("fill",fg);g.removeAttribute("stroke")}
+}
+function letterPose4(i,t,intro){
+ const l=L.letters[i];
+ if(intro){const u=t-(2.74+.035*i);if(u<=0)return{};if(u>=.85)return{};
+  const a=.2*Math.exp(-6.5*u)*Math.cos(20*u)*(1-smooth(seg(u,.55,.85)));return{sx:1+a,sy:1-a*1.1,b:1}}
+ const k=RANK[i],u=seg(t,1.45+.04*k,2.15+.04*k);if(u<=0)return{};
+ return{__u:u,k}
+}
+V4.render=(mode,t)=>{
+ const c=C(),intro=mode==="intro";
+ // ---- giant keyhole pose
+ let kx,ky,ks,krot,kfm;
+ if(intro){const pop=outBack(seg(t,.1,.9),1.6),e=inOutQuint(seg(t,2.05,2.95));
+  ks=lerp(SG*pop*(1+.02*Math.sin(t*2.2)),1,e);kx=lerp(CX,KX,e);ky=lerp(PYG,KY,e);krot=2.5*Math.sin(t*1.3)*(1-e);kfm=e}
+ else{const g=inOutQuint(seg(t,0,.8)),cl_=seg(t,2.05,2.75);
+  ks=lerp(1,SG,g)*(1-.1*Math.sin(Math.PI*seg(t,0,.15)))*(1-inOutCubic(cl_));kx=lerp(KX,CX,g);ky=lerp(KY,PYG,g);krot=0;kfm=1-g}
+ const vis=ks>.004,tf=key_tf(kx,ky,ks,krot);
+ V4.key.style.display=vis?"":"none";V4.key.setAttribute("fill",mix(kfill(),c.fg,kfm));
+ if(vis){V4.key.setAttribute("transform",tf);V4.cp.setAttribute("transform",tf);V4.mp.setAttribute("transform",tf)}
+ // ---- rows
+ const fg=c.fg;
+ if(intro){
+  const conv=inOutExpo(seg(t,1.95,2.72)),fade=outCubic(seg(t,2.35,2.85));
+  for(let i=0;i<NR;i++){const v=SPD[i],dir=Math.sign(v),E=-dir*1100*(1-outExpo(seg(t,.05*i,.9+.05*i)));
+   const off=wrap(marq(i,t))+E,y=HC+(i-CR)*PITCH*(1-conv);
+   const rs=i===CR?lerp(RS0,1,conv):RS0,op=outCubic(seg(t,.05*i,.5+.05*i))*(i===CR?1:1-fade);
+   setRow(i,V4.rows[i],off,y,rs,op,fg);
+   const sk=i!==CR?bell(seg(t,2.15,2.9)):0,e=V4.streak[i];e.style.display=sk>.01?"":"none";
+   if(sk>.01){const w=SLEN[i]*(.4+1.2*seg(t,2.15,2.9));e.setAttribute("width",fx(w));e.setAttribute("x",fx(CX-w/2+SOFF[i]*140*(Math.sign(SPD[i]))*seg(t,2.15,2.9)));
+    e.setAttribute("y",fx(y+HC-.55-HC));e.setAttribute("fill",fg);e.setAttribute("opacity",fs(.85*sk))}}
+  V4.gC.style.display=t<2.74?"":"none";
+ }else{
+  const sp=seg(t,.15,1.45),ye=inOutExpo(sp);
+  for(let i=0;i<NR;i++){const dir=Math.sign(SPD[i]);
+   if(i===CR){V4.rows[i].style.display="none";V4.streak[i].style.display="none";continue}
+   const A=dir*(PL*5*inQuad(sp)+Math.abs(SPD[i])*Math.max(0,t-.15));
+   const off=wrap(A),y=HC+(i-CR)*PITCH*ye,rs=lerp(1,RS0,ye),op=seg(sp,0,.1)*(1-seg(t,1.7,2.3));
+   setRow(i,V4.rows[i],off,y,rs,op,fg);
+   const sk=bell(sp)*.9,e=V4.streak[i];e.style.display=sk>.02?"":"none";
+   if(sk>.02){const w=SLEN[i]*(.5+1.6*sp);e.setAttribute("width",fx(w));e.setAttribute("x",fx(CX-w/2+dir*(200+500*sp)));e.setAttribute("y",fx(y-.55));e.setAttribute("fill",fg);e.setAttribute("opacity",fs(sk))}}
+  V4.gC.style.display="none";
+ }
+ // ---- real letters (squash & snap on the way in, swallowed on the way out)
+ V4.set.forEach(it=>{
+  const showL=intro?t>=2.74:true;
+  if(!showL){hide(it.gs[0]);it.gs[1]&&hide(it.gs[1]);it.gs[2]&&hide(it.gs[2]);return}
+  if(intro){putLetter(it,(i,tt)=>letterPose4(i,tt,true),t,fg,null)}
+  else putLetter(it,(i,tt)=>{const q=letterPose4(i,tt,false);if(q.__u===undefined)return{};const u=q.__u,e=inExpo(u);
+   const sh=Math.sin(Math.PI*u),sc=1-.9*inCubic(u);
+   return{dx:(kx-L.letters[i].cx)*e,dy:(ky+4-L.letters[i].cy)*e,sx:(1+1.8*sh)*sc,sy:(1-.4*sh)*sc,o:1-seg(u,.88,1),fill:mix(fg,"#ffffff",seg(u,0,.3))}},t,fg,{dt:.03,o:.3});
+ });
+};
+})();
+
+// =====================================================================================
+// 5 · PARTÍCULAS — canvas flow out of the keyhole, converging into the wordmark
+// =====================================================================================
+const V5={name:"Partículas",desc:"Miles de partículas brotan del cerrojo en remolino y se condensan en las letras.",I:4.2,O:3.2};
+(()=>{
+const N=5200;let P=null;
+const SZ=[.5,.8,1.2];
+function init(){
+ const rnd=mulberry32(20261112),off=document.createElement("canvas").getContext("2d");
+ const paths=L.letters.map(l=>{const p=new Path2D();p.addPath(new Path2D(l.d),new DOMMatrix().translate(l.x,YB));return p});
+ const bb=V5.set.map(it=>{const b=it.gs[0].firstChild.getBBox();return{x:it.l.x+b.x,y:YB+b.y,w:b.width,h:b.height}});
+ const frac=bb.map((b,i)=>{let n=0;for(let k=0;k<400;k++)if(off.isPointInPath(paths[i],b.x+rnd()*b.w,b.y+rnd()*b.h))n++;return n/400});
+ const areas=bb.map((b,i)=>b.w*b.h*frac[i]),tot=areas.reduce((a,b)=>a+b,0);
+ const tx=[],ty=[],dep=[];
+ bb.forEach((b,i)=>{const want=Math.round(N*areas[i]/tot);let got=0,guard=0;
+  while(got<want&&guard++<want*30){const x=b.x+rnd()*b.w,y=b.y+rnd()*b.h;if(!off.isPointInPath(paths[i],x,y))continue;
+   let d=3;for(const [k,w] of [[0,2.2],[1,4.5],[2,7.5]]){off.lineWidth=2*w;if(off.isPointInStroke(paths[i],x,y)){d=k;break}}
+   tx.push(x);ty.push(y);dep.push(d);got++}});
+ const n=tx.length,F=()=>new Float32Array(n);
+ P={n,tx:Float32Array.from(tx),ty:Float32Array.from(ty),dep:Uint8Array.from(dep),t0:F(),du:F(),th:F(),a1:F(),a2:F(),f1:F(),f2:F(),p1:F(),p2:F(),o0:F(),od:F(),cls:new Uint8Array(n)};
+ for(let i=0;i<n;i++){const r=rnd(),r2=rnd();
+  P.t0[i]=.6+Math.pow(r,1.4)*1.35;P.du[i]=1.05+r2*.6;P.th[i]=(rnd()>.15?1:-1)*(2.2+rnd()*4.2);
+  P.a1[i]=4+rnd()*12;P.a2[i]=4+rnd()*12;P.f1[i]=1.5+rnd()*2.5;P.f2[i]=1.5+rnd()*2.5;P.p1[i]=rnd()*6.28;P.p2[i]=rnd()*6.28;
+  P.o0[i]=.35+dep[i]*.2+rnd()*.3;P.od[i]=.9+rnd()*.5;
+  P.cls[i]=(rnd()<.14?3:0)+(rnd()<.2?2:rnd()<.6?1:0)}
+ // bucket indices by class (colour x size)
+ P.buckets=[[],[],[],[],[],[]];for(let i=0;i<n;i++){const k=P.cls[i];P.buckets[(k>=3?3:0)+(k%3)].push(i)}
+}
+V5.build=root=>{
+ V5.g=el("g",null,root);V5.set=mkSet(V5.g,0);V5.key=el("path",{d:KEYD},root);init();
+};
+const ctx=$("cv").getContext("2d");
+function pos(i,t,intro,out){ // analytic, stateless
+ const vx=P.tx[i]-KX,vy=P.ty[i]-KY;let e,ang,w;
+ if(intro){const u=seg(t,P.t0[i],P.t0[i]+P.du[i]);e=1-Math.pow(1-u,4);ang=P.th[i]*Math.pow(1-e,1.5);w=Math.sin(Math.PI*u)*(1-e*.5)}
+ else{const u=seg(t,P.o0[i],P.o0[i]+P.od[i]);e=1-Math.pow(u,2.1);ang=P.th[i]*Math.pow(u,1.1)*1.0;w=Math.sin(Math.PI*u)}
+ const c=Math.cos(ang),s=Math.sin(ang);
+ out[0]=KX+(vx*c-vy*s)*e+P.a1[i]*Math.sin(P.f1[i]*t+P.p1[i])*w;
+ out[1]=KY+(vx*s+vy*c)*e+P.a2[i]*Math.cos(P.f2[i]*t+P.p2[i])*w;
+}
+V5.render=(mode,t)=>{
+ const c=C(),intro=mode==="intro";
+ ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,1920,1080);ctx.setTransform(SC,0,0,SC,OX,OY);
+ // ---- keyhole + letters
+ let ks,jit,lo,pa,gl,ring=0,ringR=0,flash=0,flashR=0;
+ if(intro){const pop=seg(t,0,.45);
+  const back=outBack(seg(t,2.6,3.4),1.4);
+  ks=t<2.6?1.5*outBack(pop,1.8):lerp(1.5,1,back);jit=.9*seg(t,.4,1.0)*(1-seg(t,2.2,2.6));
+  lo=seg(t,3.4,4.0);pa=1-seg(t,3.35,3.95);gl=smooth(pop)*(1-seg(t,2.8,3.6));
+  const rp=seg(t,.9,1.7);ring=(1-rp)*(rp>0?1:0);ringR=lerp(8,140,outExpo(rp))}
+ else{let pu=0;[1.0,1.5,1.9,2.2,2.4].forEach(a=>pu+=.2*bell(seg(t,a,a+.28)));const cl_=seg(t,2.55,3.1);
+  ks=(1+pu)*(1-inOutCubic(cl_));jit=0;lo=1-seg(t,0,.5);pa=seg(t,0,.35);gl=seg(t,.6,1.2)*(1-seg(cl_,.5,1));
+  const fp=seg(cl_,.55,1);flash=Math.sin(Math.PI*fp);flashR=20+110*fp}
+ V5.key.style.display=ks>.004?"":"none";
+ if(ks>.004){V5.key.setAttribute("fill",c.fg);V5.key.setAttribute("transform",key_tf(KX+jit*Math.sin(t*83),KY+jit*Math.cos(t*71),ks))}
+ V5.g.style.display=lo>.003?"":"none";
+ if(lo>.003){V5.set.forEach(it=>putLetter(it,()=>({o:1}),t,c.fg,null));if(lo>=1)V5.g.removeAttribute("opacity");else V5.g.setAttribute("opacity",fs(lo))}
+ // ---- canvas
+ ctx.globalCompositeOperation=BG==="ink"?"lighter":"source-over";
+ const hi=BG==="ink"?"#8f9bff":BG==="cream"?BLUE:"#ffffff";
+ if(gl>.003){const R=KR*Math.max(ks,.3)*2.2+14,g=ctx.createRadialGradient(KX,KY,0,KX,KY,R+40);g.addColorStop(0,BG==="blue"?"rgba(255,255,255,.55)":"rgba(111,125,255,.55)");g.addColorStop(1,"rgba(111,125,255,0)");
+  ctx.globalAlpha=gl*(BG==="cream"?.7:1);ctx.fillStyle=g;ctx.beginPath();ctx.arc(KX,KY,R+40,0,6.2832);ctx.fill()}
+ ctx.globalAlpha=1;
+ if(ring>.003){ctx.strokeStyle=hi;ctx.lineWidth=.7;ctx.globalAlpha=ring*.8;ctx.beginPath();ctx.arc(KX,KY,ringR,0,6.2832);ctx.stroke()}
+ if(pa>.003){
+  ctx.globalAlpha=pa;const tmp=[0,0],tmp2=[0,0],cols=[c.fg,hi];
+  ctx.lineCap="round";
+  for(let b=0;b<6;b++){const list=P.buckets[b];if(!list.length)continue;
+   ctx.strokeStyle=cols[b>=3?1:0];ctx.lineWidth=SZ[b%3];ctx.beginPath();
+   for(let q=0;q<list.length;q++){const i=list[q];
+    if(intro){const u=(t-P.t0[i])/P.du[i];if(u<=0)continue;pos(i,t,true,tmp);
+     if(u<1.03){pos(i,t-.03,true,tmp2);ctx.moveTo(tmp2[0],tmp2[1]);ctx.lineTo(tmp[0]+.01,tmp[1])}else{ctx.moveTo(tmp[0],tmp[1]);ctx.lineTo(tmp[0]+.01,tmp[1])}}
+    else{const u=(t-P.o0[i])/P.od[i];if(u>=.985)continue;pos(i,t,false,tmp);
+     if(u>0){pos(i,t-.03,false,tmp2);ctx.moveTo(tmp2[0],tmp2[1])}else ctx.moveTo(tmp[0],tmp[1]);ctx.lineTo(tmp[0]+.01,tmp[1])}}
+   ctx.stroke()}
+ }
+ if(flash>.003){const g=ctx.createRadialGradient(KX,KY,0,KX,KY,flashR);g.addColorStop(0,"rgba(255,255,255,1)");g.addColorStop(.3,"rgba(185,193,255,.7)");g.addColorStop(1,"rgba(111,125,255,0)");
+  ctx.globalAlpha=flash;ctx.fillStyle=g;ctx.beginPath();ctx.arc(KX,KY,flashR,0,6.2832);ctx.fill()}
+ ctx.globalAlpha=1;ctx.globalCompositeOperation="source-over";
+};
+V5.canvas=true;
+})();
+VS.push(V1,V2,V3,V4,V5);
+
+// =====================================================================================
+// player
+// =====================================================================================
+const HOLD=1.2,TAIL=.4,reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
+let cur=0,mode="loop",T=0,playing=true,last=null,speed=1;
+const cv=$("cv"),world=$("world");
+function ensure(v){const V=VS[v];if(!V.built){V.root=el("g",null,world);V.root.style.display="none";V.built=true;
+  V.root.style.display="";V.build(V.root)}
+ VS.forEach((W,j)=>{if(W.root)W.root.style.display=j===v?"":"none"});cv.style.display=VS[v].canvas?"":"none";if(!VS[v].canvas){cv.getContext("2d").clearRect(0,0,1920,1080)}}
+const total=()=>{const V=VS[cur];return reduced?.7:mode==="intro"?V.I:mode==="outro"?V.O:V.I+HOLD+V.O+TAIL};
+function renderAt(t,v,m){
+ const V=VS[v];ensure(v);cur=v;
+ $("bg").setAttribute("fill",C().bg);
+ if(reduced){V.render("intro",V.I);const o=m==="outro"?1-seg(t,0,.7):seg(t,0,.7);$("stage").style.opacity=o;cv.style.opacity=o;return}
+ $("stage").style.opacity="";cv.style.opacity="";
+ if(m==="intro")V.render("intro",cl(t,0,V.I));
+ else if(m==="outro")V.render("outro",cl(t,0,V.O));
+ else if(t<V.I+HOLD)V.render("intro",cl(t,0,V.I));
+ else V.render("outro",cl(t-V.I-HOLD,0,V.O));
+}
+function draw(t){T=t;renderAt(t,cur,mode);$("scrub").value=t/total();$("tt").textContent=t.toFixed(2)+" / "+total().toFixed(2)+"s"}
+window.seekFrame=(t,v,m)=>{if(v!==undefined)cur=cl((v|0)-1,0,4);if(m)mode=m;playing=false;syncUI();draw(t)};
+function tick(now){if(playing){if(last!==null){T+=(now-last)/1000*speed;
+ if(T>=total()){if(mode==="loop")T=0;else{T=total();playing=false}}}draw(T)}last=now;requestAnimationFrame(tick)}
+function syncUI(){$("bLoop").setAttribute("aria-pressed",mode==="loop");
+ document.querySelectorAll(".tab").forEach((b,j)=>{b.setAttribute("aria-selected",j===cur);b.tabIndex=j===cur?0:-1});
+ document.querySelectorAll("[data-bg]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.bg===BG));
+ $("bSlow").setAttribute("aria-pressed",speed!==1)}
+function play(m){mode=m;T=0;playing=true;syncUI()}
+function pick(v){cur=v;T=0;playing=true;last=null;syncUI()}
+VS.forEach((V,j)=>{const b=document.createElement("button");Object.entries({class:"tab",type:"button",role:"tab","aria-selected":j===0,"aria-label":`${j+1}. ${V.name}: ${V.desc}`,id:"tab"+j}).forEach(([k,v])=>b.setAttribute(k,v));$("tabs").appendChild(b);
+ b.innerHTML=`<b><i>${j+1}</i>${V.name}</b><span>${V.desc}</span>`;b.onclick=()=>pick(j);
+ b.onkeydown=e=>{if(e.key==="ArrowRight"||e.key==="ArrowLeft"){const n=(j+(e.key==="ArrowRight"?1:4))%5;pick(n);$("tab"+n).focus()}}});
+$("bIn").onclick=()=>play("intro");$("bOut").onclick=()=>play("outro");$("bLoop").onclick=()=>play("loop");
+$("scrub").oninput=e=>{playing=false;draw(+e.target.value*total())};
+document.querySelectorAll("[data-bg]").forEach(b=>b.onclick=()=>{BG=b.dataset.bg;syncUI();draw(T)});
+$("bSlow").onclick=()=>{speed=speed===1?.4:1;syncUI()};
+addEventListener("keydown",e=>{if(e.metaKey||e.ctrlKey||e.altKey)return;
+ if(e.code==="Space"){e.preventDefault();if(!e.repeat){playing=!playing;last=null}}
+ else if(/^[1-5]$/.test(e.key)&&!(e.target.type==="range"))pick(+e.key-1)});
+addEventListener("keyup",e=>{if(e.code==="Space")e.preventDefault()});
+// size the 16:9 frame inside its cell
+function fit(){const w=$("wrap"),r=w.getBoundingClientRect(),cs=getComputedStyle(w),pw=r.width-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),ph=r.height;
+ let W=Math.min(pw,ph*16/9);$("frame").style.width=W+"px";$("frame").style.height=W*9/16+"px"}
+new ResizeObserver(fit).observe($("wrap"));addEventListener("resize",fit);
+const q=new URLSearchParams(location.search);
+if(q.has("bare"))document.body.classList.add("bare");
+if(q.has("bg")&&COLS[q.get("bg")])BG=q.get("bg");
+if(q.has("v"))cur=cl((+q.get("v")|0)-1,0,4);
+syncUI();fit();
+if(q.has("t")){mode=q.get("m")||"loop";playing=false;syncUI();draw(+q.get("t"))}
+else{if(q.get("m"))mode=q.get("m");if(reduced){mode="intro"}draw(0)}
+if(!q.has("t"))requestAnimationFrame(tick);
+</script></body></html>
